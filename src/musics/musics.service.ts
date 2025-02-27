@@ -1,16 +1,16 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { MusicsInterface } from './interfaces';
+import { MusicInterface } from './interfaces';
 import * as fs from 'fs';
 
 @Injectable()
-export class MusicsService {
+export class MusicService {
   private readonly filePath = 'src/musics/musics.json';
 
   constructor() {}
 
-  addMusics(newMusics: MusicsInterface[]) {
+  addMusics(newMusics: MusicInterface[]) {
     try {
-      let musicList: MusicsInterface[] = [];
+      let musicList: MusicInterface[] = [];
 
       if (fs.existsSync(this.filePath)) {
         const fileContent = fs.readFileSync(this.filePath, 'utf8');
@@ -67,6 +67,38 @@ export class MusicsService {
       return musicList;
     } catch (error) {
       throw new InternalServerErrorException(error, 'Unable to get music list');
+    }
+  }
+
+  deleteMusic(music: { title: string; artist: string }) {
+    try {
+      let musicList: MusicInterface[] = [];
+
+      if (fs.existsSync(this.filePath)) {
+        const fileContent = fs.readFileSync(this.filePath, 'utf8');
+        musicList = fileContent ? JSON.parse(fileContent) : [];
+        console.log('🚀 ~ MusicsService ~ deleteMusic ~ musicList:', musicList);
+      }
+
+      const removeMusicIndex = musicList.findIndex(
+        (musicAtList) =>
+          musicAtList.artist === music.artist &&
+          musicAtList.title === music.title,
+      );
+
+      musicList.splice(removeMusicIndex, 1);
+
+      fs.writeFileSync(
+        this.filePath,
+        JSON.stringify(musicList, null, 2),
+        'utf8',
+      );
+
+      return {
+        message: 'Music deleted successfully',
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error, 'Unable to delete music');
     }
   }
 }

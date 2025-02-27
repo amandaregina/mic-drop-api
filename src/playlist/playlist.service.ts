@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { MusicsInterface } from 'src/musics/interfaces';
+import { MusicInterface } from 'src/musics/interfaces';
 import { PlaylistInterface } from './interfaces';
 import * as fs from 'fs';
 
@@ -9,7 +9,7 @@ export class PlaylistService {
 
   constructor() {}
 
-  upsertPlaylist(music: MusicsInterface) {
+  upsertPlaylist(music: MusicInterface) {
     try {
       let playlist: PlaylistInterface[] = [];
 
@@ -50,6 +50,40 @@ export class PlaylistService {
       return playlist;
     } catch (error) {
       throw new InternalServerErrorException(error, 'Unable to get playlist');
+    }
+  }
+
+  removeMusic(music: { title: string; artist: string }) {
+    try {
+      let playlist: PlaylistInterface[] = [];
+
+      if (fs.existsSync(this.filePath)) {
+        const fileContent = fs.readFileSync(this.filePath, 'utf8');
+        playlist = fileContent ? JSON.parse(fileContent) : [];
+      }
+
+      const removeMusicIndex = playlist.findIndex(
+        (musicAtPlaylist) =>
+          musicAtPlaylist.artist === music.artist &&
+          musicAtPlaylist.title === music.title,
+      );
+
+      playlist.splice(removeMusicIndex, 1);
+
+      fs.writeFileSync(
+        this.filePath,
+        JSON.stringify(playlist, null, 2),
+        'utf8',
+      );
+
+      return {
+        message: 'Music removed successfully',
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error,
+        'Unable to remove music at playlist',
+      );
     }
   }
 }

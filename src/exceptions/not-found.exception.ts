@@ -1,7 +1,10 @@
-import { HttpException, HttpExceptionOptions, HttpStatus } from '@nestjs/common'
-import { ApiProperty } from '@nestjs/swagger'
-
-import { httpExceptionType } from '@/exceptions/utils/http-exception-type'
+import {
+  HttpException,
+  HttpExceptionOptions,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiProperty } from '@nestjs/swagger';
+import { httpExceptionType } from './utils/http-exception-type';
 
 /**
  * Custom exception class for handling "Not Found" errors.
@@ -15,7 +18,7 @@ export class NotFoundException extends HttpException {
     description: 'The exception message',
     example: 'Not Found',
   })
-  message: string
+  message: string;
 
   /**
    * The `HttpStatus` code.
@@ -25,7 +28,7 @@ export class NotFoundException extends HttpException {
     description: 'A `HttpStatus` code',
     example: HttpStatus.NOT_FOUND,
   })
-  code: HttpStatus = HttpStatus.NOT_FOUND
+  code: HttpStatus = HttpStatus.NOT_FOUND;
 
   /**
    * The exception  type.
@@ -35,7 +38,7 @@ export class NotFoundException extends HttpException {
     description: 'The exception type',
     example: httpExceptionType(NotFoundException.name),
   })
-  type: string = httpExceptionType(NotFoundException.name)
+  type: string = httpExceptionType(NotFoundException.name);
 
   /**
    * Creates an instance of NotFoundException.
@@ -43,8 +46,8 @@ export class NotFoundException extends HttpException {
    * @param options - The options for the exception.
    */
   constructor(message?: string, options?: HttpExceptionOptions) {
-    const code = HttpStatus.NOT_FOUND
-    super(message, code, options)
-    this.message = message || 'Not Found'
+    const code = HttpStatus.NOT_FOUND;
+    super(message, code, options);
+    this.message = message || 'Not Found';
   }
 }

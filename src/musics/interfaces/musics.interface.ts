@@ -1,4 +1,4 @@
-export interface MusicsInterface {
+export interface MusicInterface {
   title: string;
   artist: string;
   genre?: string;

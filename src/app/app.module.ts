@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PlaylistModule } from 'src/playlist/playlist.module';
-import { MusicsModule } from 'src/musics/musics.module';
+import { MusicModule } from 'src/musics/musics.module';
 
 @Module({
-  imports: [MusicsModule, PlaylistModule],
+  imports: [MusicModule, PlaylistModule],
 })
 export class AppModule {}
