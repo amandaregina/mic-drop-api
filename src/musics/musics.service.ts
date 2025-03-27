@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MusicInterface } from './interfaces';
 import * as fs from 'fs';
 
@@ -10,83 +14,107 @@ export class MusicService {
 
   addMusics(newMusics: MusicInterface[]) {
     try {
-      let musicList: MusicInterface[] = [];
-
-      if (fs.existsSync(this.filePath)) {
-        const fileContent = fs.readFileSync(this.filePath, 'utf8');
-        musicList = fileContent ? JSON.parse(fileContent) : [];
+      if (!fs.existsSync(this.filePath)) {
+        fs.writeFileSync(this.filePath, JSON.stringify([], null, 2), 'utf8');
       }
 
-      newMusics.forEach((newMusic) => {
-        musicList.map((music) => {
-          if (
-            music.artist === newMusic.artist &&
-            music.title === newMusic.title
-          ) {
-            console.log(
-              `The song ${music.title} by ${music.artist} already registered`,
-            );
+      const fileContent = fs.readFileSync(this.filePath, 'utf8');
+      const musicList: MusicInterface[] = fileContent
+        ? JSON.parse(fileContent)
+        : [];
 
-            const removeMusicIndex = newMusics.findIndex(
-              (newMusic) =>
-                newMusic.artist === music.artist &&
-                newMusic.title === music.title,
-            );
+      // Filter out duplicates using case-insensitive comparison
+      const uniqueNewMusics = newMusics.filter((newMusic) => {
+        const isDuplicate = musicList.some(
+          (existingMusic) =>
+            existingMusic.artist.toLowerCase() ===
+              newMusic.artist.toLowerCase() &&
+            existingMusic.title.toLowerCase() === newMusic.title.toLowerCase(),
+        );
 
-            newMusics.splice(removeMusicIndex, 1);
-          }
-        });
+        if (isDuplicate) {
+          console.warn(
+            `Skipping duplicate: "${newMusic.title}" by ${newMusic.artist}`,
+          );
+        }
+
+        return !isDuplicate;
       });
 
-      musicList.push(...newMusics);
+      if (uniqueNewMusics.length === 0) {
+        return {
+          message: 'No new music added - all entries already exist',
+          musicList,
+        };
+      }
+
+      const updatedMusicList = [...musicList, ...uniqueNewMusics];
 
       fs.writeFileSync(
         this.filePath,
-        JSON.stringify(musicList, null, 2),
+        JSON.stringify(updatedMusicList, null, 2),
         'utf8',
       );
 
       return {
-        message: 'Music(s) added successfully',
-        musicList,
+        message: `Successfully added ${uniqueNewMusics.length} music(s)`,
+        added: uniqueNewMusics,
+        musicList: updatedMusicList,
       };
     } catch (error) {
-      throw new InternalServerErrorException(error, 'Unable to add music');
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Unknown error',
+        'Unable to add music',
+      );
     }
   }
 
   listMusics() {
     try {
       if (!fs.existsSync(this.filePath)) {
-        return [];
+        return {
+          message: 'No music database found',
+          musics: [],
+        };
       }
 
       const fileContent = fs.readFileSync(this.filePath, 'utf8');
       const musicList = fileContent ? JSON.parse(fileContent) : [];
 
-      return musicList;
+      return {
+        message: `Found ${musicList.length} music(s)`,
+        musics: musicList,
+      };
     } catch (error) {
-      throw new InternalServerErrorException(error, 'Unable to get music list');
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Unknown error',
+        'Unable to get music list',
+      );
     }
   }
 
   deleteMusic(music: { title: string; artist: string }) {
     try {
-      let musicList: MusicInterface[] = [];
-
-      if (fs.existsSync(this.filePath)) {
-        const fileContent = fs.readFileSync(this.filePath, 'utf8');
-        musicList = fileContent ? JSON.parse(fileContent) : [];
-        console.log('🚀 ~ MusicsService ~ deleteMusic ~ musicList:', musicList);
+      if (!fs.existsSync(this.filePath)) {
+        throw new NotFoundException('Music database file not found');
       }
+
+      const fileContent = fs.readFileSync(this.filePath, 'utf8');
+      const musicList: MusicInterface[] = fileContent
+        ? JSON.parse(fileContent)
+        : [];
 
       const removeMusicIndex = musicList.findIndex(
         (musicAtList) =>
-          musicAtList.artist === music.artist &&
-          musicAtList.title === music.title,
+          musicAtList.artist.toLowerCase() === music.artist.toLowerCase() &&
+          musicAtList.title.toLowerCase() === music.title.toLowerCase(),
       );
 
-      musicList.splice(removeMusicIndex, 1);
+      if (removeMusicIndex === -1) {
+        throw new Error(`Music "${music.title}" by ${music.artist} not found`);
+      }
+
+      const removedMusic = musicList.splice(removeMusicIndex, 1)[0];
 
       fs.writeFileSync(
         this.filePath,
@@ -96,9 +124,13 @@ export class MusicService {
 
       return {
         message: 'Music deleted successfully',
+        deletedMusic: removedMusic,
       };
     } catch (error) {
-      throw new InternalServerErrorException(error, 'Unable to delete music');
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Unknown error',
+        'Unable to delete music',
+      );
     }
   }
 }
